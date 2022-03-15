@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional, Union
 
 import numpy as np
@@ -95,8 +96,16 @@ def rpy2py_single_cell_experiment(obj: SexpS4) -> AnnData:
     obs = rpy2py_data_frame(col_data)
     var = rpy2py_data_frame(row_data)
     # The whole shebang: configured converter, numpy, pandas and ours
+    uns = {}
     with localconverter(full_converter()):
-        uns = dict(metadata.items())
+        m = metadata.items()
+        try:
+            k, v = next(m)
+            uns[k] = v
+        except StopIteration:
+            ...
+        except BaseException as e:
+            warnings.warn(f"Cannot convert metadata: {type(e).__name__}: {e}")
 
     # TODO: Once the AnnData bug is fixed, remove the “or None”
     return AnnData(exprs, obs, var, uns, obsm or None, layers=layers)
